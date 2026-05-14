@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Executivo de Pagamentos</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --azul:#0f6bff;--azul2:#12396d;--rosa:#ff006e;--verde:#18b26b;--amarelo:#ffb000;--roxo:#7c3aed;
+      --bg:#eaf3ff;--borda:#d8e6fb;--muted:#657084;--shadow:0 12px 28px rgba(15,40,90,.12);--radius:22px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif}
+    body{background:linear-gradient(135deg,#e7f1ff,#f8fbff);padding:22px;color:#1f2937}
+    .app{max-width:1720px;margin:auto}
+    .header{background:linear-gradient(135deg,#083b8a,#0f6bff,#18b26b);color:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:18px;display:flex;justify-content:space-between;gap:18px;align-items:center}
+    .header h1{font-size:30px;margin-bottom:6px}.header p{opacity:.92;font-size:14px}
+    .badge{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);padding:14px 18px;border-radius:16px;min-width:225px;text-align:right}.badge strong{display:block;font-size:22px}
+    .toolbar{display:grid;grid-template-columns:1.2fr 2.3fr .85fr;gap:16px;margin-bottom:14px}
+    .panel{background:#fff;border:1px solid var(--borda);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.panel h3{color:var(--azul2);font-size:17px;margin-bottom:10px}
+    .upload{border:2px dashed #9dbaf3;min-height:185px}.small{font-size:12px;color:var(--muted);line-height:1.45}
+    input[type=file]{width:100%;padding:12px;background:#fff;border:1px solid var(--borda);border-radius:14px;margin:12px 0}
+    .filters-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    label{display:block;font-size:11px;font-weight:900;text-transform:uppercase;color:#526071;margin-bottom:6px}
+    select,input[type=text],input[type=number]{width:100%;padding:11px;border:1px solid var(--borda);border-radius:12px;background:#fff;outline:none}
+    .actions{display:flex;flex-direction:column;gap:10px}
+    .btn{border:none;border-radius:14px;padding:12px 14px;font-weight:900;cursor:pointer;color:#fff;transition:.16s}.btn:hover{transform:translateY(-1px);box-shadow:0 8px 16px rgba(0,0,0,.12)}
+    .primary{background:var(--azul)}.dark{background:#152238}.warning{background:var(--amarelo);color:#2a2100}.success{background:var(--verde)}.danger{background:#ef3333}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}.chip{border:1px solid #bad1ff;background:#fff;color:var(--azul2);border-radius:999px;padding:9px 14px;cursor:pointer;font-size:13px;font-weight:900}.chip.active,.chip:hover{background:var(--azul);color:#fff}
+    .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:16px}.kpi{background:#fff;border:1px solid var(--borda);border-radius:20px;padding:17px;box-shadow:var(--shadow);overflow:hidden;position:relative}.kpi:after{content:"";position:absolute;right:-25px;top:-25px;width:85px;height:85px;border-radius:50%;background:rgba(15,107,255,.08)}.icon{font-size:23px;margin-bottom:10px}.label{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase}.value{font-size:22px;font-weight:900;color:var(--azul2);margin-top:8px}.sub{font-size:12px;color:var(--muted);margin-top:6px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.card{background:#fff;border:1px solid var(--borda);border-radius:var(--radius);padding:17px;box-shadow:var(--shadow);height:430px;display:flex;flex-direction:column;overflow:hidden}.card.full{grid-column:1/-1;height:520px}.head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.head h3{color:var(--azul2);font-size:21px}.head span{color:var(--muted);font-size:14px;font-weight:900}.wrap{position:relative;flex:1;min-height:0;height:340px}.full .wrap{height:420px}canvas{width:100%!important;height:100%!important}
+    .table-section{margin-top:16px;background:#fff;border:1px solid var(--borda);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}.table-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:14px}.table-container{overflow:auto;max-height:430px;border:1px solid var(--borda);border-radius:14px}table{width:100%;border-collapse:collapse;min-width:1000px}th,td{padding:10px 12px;border-bottom:1px solid #eef2fb;text-align:left;font-size:13px;white-space:nowrap}th{position:sticky;top:0;background:#f3f7ff;color:var(--azul2);font-size:11px;text-transform:uppercase;z-index:2}.empty{text-align:center;padding:42px 20px;color:var(--muted)}.status{margin-top:12px;background:#eef7ff;color:var(--azul2);border-radius:14px;padding:12px;font-size:13px;line-height:1.45}.error{background:#fff1f1;color:#9b1111}
+    @media(max-width:1200px){.toolbar,.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(3,1fr)}.card,.card.full{grid-column:auto;height:430px}.filters-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){body{padding:12px}.header{flex-direction:column;align-items:flex-start}.badge{text-align:left;width:100%}.kpis,.filters-grid{grid-template-columns:1fr}.head h3{font-size:17px}}
+  </style>
+</head>
+<body>
+<main class="app">
+  <section class="header">
+    <div><h1>Dashboard Executivo de Pagamentos</h1><p>Upload de planilhas Excel, filtros dinâmicos, gráficos automáticos e valores visíveis sem passar o mouse.</p></div>
+    <div class="badge"><span>Base atual</span><strong id="fileCount">0 arquivos</strong><small id="rowCount">0 registros carregados</small></div>
+  </section>
+
+  <section class="toolbar">
+    <div class="panel upload"><h3>📤 Upload de planilha</h3><p class="small">Aceita .xlsx, .xls e .csv. Procura a aba <b>Pagamentos</b>; se não encontrar, usa a primeira aba.</p><input id="fileInput" type="file" accept=".xlsx,.xls,.csv" multiple><div id="uploadStatus" class="small">Nenhum arquivo carregado.</div></div>
+    <div class="panel"><h3>🎛️ Filtros interativos</h3><div class="filters-grid">
+      <div><label>Operação</label><select id="operationFilter"><option value="">Todas</option></select></div>
+      <div><label>Período</label><select id="periodFilter"><option value="">Todos</option></select></div>
+      <div><label>Tipo de pagamento</label><select id="typeFilter"><option value="">Todos</option></select></div>
+      <div><label>Colaborador</label><select id="employeeFilter"><option value="">Todos</option></select></div>
+      <div><label>Busca geral</label><input id="searchFilter" type="text" placeholder="Digite nome, operação ou período"></div>
+      <div><label>Valor mínimo</label><input id="minValueFilter" type="number" placeholder="0" min="0" step="0.01"></div>
+      <div><label>Valor máximo</label><input id="maxValueFilter" type="number" placeholder="Sem limite" min="0" step="0.01"></div>
+      <div><label>Ranking</label><select id="topFilter"><option value="5">Top 5</option><option value="10" selected>Top 10</option><option value="15">Top 15</option><option value="20">Top 20</option><option value="9999">Todos</option></select></div>
+    </div></div>
+    <div class="panel actions"><h3>⚙️ Ações</h3><button class="btn primary" id="applyBtn">🔎 Aplicar filtros</button><button class="btn dark" id="refreshBtn">🔄 Atualizar dashboard</button><button class="btn warning" id="clearFiltersBtn">🧹 Limpar filtros</button><button class="btn success" id="exportCsvBtn">⬇️ Exportar filtrado</button><button class="btn danger" id="resetBtn">🗑️ Apagar tudo</button></div>
+  </section>
+
+  <section class="chips"><button class="chip" data-quick="all">Todos os dados</button><button class="chip" data-quick="horaextra">Hora Extra</button><button class="chip" data-quick="diarista">Diaristas</button><button class="chip" data-quick="salario">Salários</button><button class="chip" data-quick="ajuda">Ajuda de custo</button><button class="chip" data-quick="atipicos">Valores atípicos</button></section>
+
+  <section class="kpis">
+    <div class="kpi"><div class="icon">💰</div><div class="label">Total pago</div><div class="value" id="kpiTotal">R$ 0,00</div><div class="sub">Soma filtrada</div></div>
+    <div class="kpi"><div class="icon">👥</div><div class="label">Colaboradores</div><div class="value" id="kpiEmployees">0</div><div class="sub">Pessoas únicas</div></div>
+    <div class="kpi"><div class="icon">🏭</div><div class="label">Operações</div><div class="value" id="kpiOperations">0</div><div class="sub">Centros de custo</div></div>
+    <div class="kpi"><div class="icon">📄</div><div class="label">Lançamentos</div><div class="value" id="kpiRows">0</div><div class="sub">Registros na base</div></div>
+    <div class="kpi"><div class="icon">⏱️</div><div class="label">Hora extra</div><div class="value" id="kpiExtra">R$ 0,00</div><div class="sub">Custo variável</div></div>
+    <div class="kpi"><div class="icon">⚠️</div><div class="label">Atípicos</div><div class="value" id="kpiOutliers">0</div><div class="sub">Acima de 2x média</div></div>
+  </section>
+
+  <section class="grid">
+    <div class="card"><div class="head"><h3>📊 Ranking de períodos</h3><span>Top períodos por valor</span></div><div class="wrap"><canvas id="periodChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>📅 Evolução mês a mês</h3><span>Colunas + tendência</span></div><div class="wrap"><canvas id="monthEvolutionChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>💎 Consolidação mensal sem diaristas</h3><span>Semanas, quinzenas e mensal</span></div><div class="wrap"><canvas id="quinzenaMonthChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>⏱️ Horas extras por mês</h3><span>Semanas + mensal</span></div><div class="wrap"><canvas id="weeklyExtraMonthChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>🧑‍🔧 Diaristas por mês</h3><span>Semanas + mensal</span></div><div class="wrap"><canvas id="weeklyDiaristaMonthChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>🍩 Composição por tipo</h3><span>% do total</span></div><div class="wrap"><canvas id="typeChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>🏆 Ranking por operação</h3><span>Maiores custos</span></div><div class="wrap"><canvas id="operationChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>👤 Top colaboradores</h3><span>Valor recebido</span></div><div class="wrap"><canvas id="employeeChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>📊 Fixo x variável</h3><span>Estrutura de custo</span></div><div class="wrap"><canvas id="fixedVariableChart"></canvas></div></div>
+    <div class="card"><div class="head"><h3>🚨 Pagamentos atípicos</h3><span>Acima de 2x média</span></div><div class="wrap"><canvas id="outlierChart"></canvas></div></div>
+    <div class="card full"><div class="head"><h3>🏭 AMAZON FOR — próprio x diaristas por mês</h3><span>Colunas separadas + total</span></div><div class="wrap"><canvas id="amazonForChart"></canvas></div></div>
+    <div class="card full"><div class="head"><h3>🔥 Mapa de calor</h3><span>Operação x período</span></div><div id="heatmap" class="wrap"></div></div>
+  </section>
+
+  <section class="table-section"><div class="table-head"><div><h3>📋 Base filtrada</h3><p class="small">A tabela acompanha os filtros e exibe até 150 linhas para manter velocidade.</p></div><strong id="filteredInfo">0 registros</strong></div><div class="table-container"><table><thead><tr><th>Arquivo</th><th>Colaborador</th><th>Operação</th><th>Tipo</th><th>Período</th><th>Mês</th><th>Semana</th><th>Valor</th><th>Status</th></tr></thead><tbody id="dataTable"><tr><td colspan="9"><div class="empty">📤 Faça upload de uma planilha para iniciar.</div></td></tr></tbody></table></div><div class="status" id="insightsBox">Aguardando upload de dados.</div></section>
+</main>
+
+<script>
+(function(){
+  let rawData=[], filteredData=[], loadedFiles=[], charts={};
+  const BRL=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+  const NUM=new Intl.NumberFormat('pt-BR');
+  const $=id=>document.getElementById(id);
+  const monthNames=['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  const colors=['#0f6bff','#ff006e','#18b26b','#ffb000','#7c3aed','#00a8a8','#ef4444','#14b8a6','#6366f1','#f97316','#84cc16','#8b5cf6'];
+  const aliases={collaborator:['COLABORADOR','FUNCIONARIO','FUNCIONÁRIO','NOME','COLABORADORES'],operation:['OPERAÇÃO','OPERACAO','CENTRO DE CUSTO','BASE','SETOR','AREA','ÁREA'],value:['VALOR','VALORES','TOTAL','PAGAMENTO','R$','CUSTO'],period:['PERÍODO','PERIODO','MES','MÊS','DATA','REFERENCIA','REFERÊNCIA'],type:['TIPO','TIPO DE PAGAMENTO','CATEGORIA','CLASSIFICAÇÃO','CLASSIFICACAO']};
+
+  function norm(v){return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase()}
+  function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
+  function money(v){const n=Number(v||0);if(Math.abs(n)>=1000000)return 'R$ '+(n/1000000).toFixed(1).replace('.',',')+' mi';if(Math.abs(n)>=1000)return 'R$ '+(n/1000).toFixed(1).replace('.',',')+' mil';return BRL.format(n)}
+  function short(v,len=24){const s=String(v??'');return s.length>len?s.slice(0,len)+'…':s}
+  function parseMoney(v){if(typeof v==='number')return v;if(v==null||v==='')return 0;let s=String(v).replace(/R\$|\s/g,'');if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');else if(s.includes(','))s=s.replace(',','.');const n=Number(s.replace(/[^0-9.-]/g,''));return isNaN(n)?0:n}
+  function findCol(headers,list){const nh=headers.map(norm);for(const a of list){const i=nh.indexOf(norm(a));if(i>=0)return headers[i]}for(const a of list){const an=norm(a);const i=nh.findIndex(h=>h.includes(an)||an.includes(h));if(i>=0)return headers[i]}return null}
+  function formatPeriod(v){if(v instanceof Date&&!isNaN(v))return v.toLocaleDateString('pt-BR');return String(v??'').trim()}
+
+  function isExtraText(t){const s=norm(t).replace(/[ ._-]+/g,' ');return s.includes('HORA EXTRA')||s.includes('HORAS EXTRAS')||s.includes('EXTRA')||s==='HE'||s.includes(' H E ')}
+  function isDiaristaText(t){const s=norm(t).replace(/[ ._-]+/g,' ');return s.includes('DIARISTA')||s.includes('DIARISTAS')||s.includes('DIARIA')||s.includes('DIARIAS')}
+  function inferType(op,per,t){const s=norm(`${op} ${per} ${t}`);if(isExtraText(s))return'HORA EXTRA';if(isDiaristaText(s))return'DIARISTA';if(s.includes('AJUDA'))return'AJUDA DE CUSTO';if(s.includes('RESCISAO'))return'RESCISÃO';if(s.includes('FERIAS'))return'FÉRIAS';if(s.includes('SALARIO'))return'SALÁRIO';return t?String(t).trim().toUpperCase():'NÃO CLASSIFICADO'}
+  function isExtraRecord(r){return r.type==='HORA EXTRA'||isExtraText(`${r.type} ${r.operation} ${r.period}`)}
+  function isDiaristaRecord(r){return r.type==='DIARISTA'||isDiaristaText(`${r.type} ${r.operation} ${r.period}`)}
+  function isAmazonForRecord(r){return norm(`${r.operation} ${r.type}`).includes('AMAZON FOR')}
+
+  function inferMonthFromText(text){
+    const s=norm(text);
+    const byName=[['JAN','JANEIRO'],['FEV','FEVEREIRO'],['MAR','MARÇO'],['ABR','ABRIL'],['MAI','MAIO'],['JUN','JUNHO'],['JUL','JULHO'],['AGO','AGOSTO'],['SET','SETEMBRO'],['OUT','OUTUBRO'],['NOV','NOVEMBRO'],['DEZ','DEZEMBRO']].find(m=>s.includes(m[0]));
+    if(byName)return byName[1];
+    const mensal=s.match(/(?:MENSAL)?\s*(0?[1-9]|1[0-2])[\/.-]20[0-9]{2}/);
+    if(mensal)return monthNames[Number(mensal[1])-1]||'';
+    return '';
+  }
+  function weekNum(period){
+    const s=norm(period);const m=s.match(/(?:SEMANA|SEM|S)\s*0?([0-9]{1,2})/);return m?Number(m[1]):null;
+  }
+  function monthFromWeek(n){if(!n)return'';return monthNames[Math.ceil(n/4)-1]||''}
+  function monthOf(r){return inferMonthFromText(r.period)||monthFromWeek(weekNum(r.period))||inferMonthFromText(r.monthKey)||'NÃO INFORMADO'}
+  function weekKey(r){const n=weekNum(r.period);return n?'S'+String(n).padStart(2,'0'):r.period}
+
+  function readFile(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=e=>{try{if(!window.XLSX)throw new Error('Biblioteca XLSX não carregou. Verifique a internet do navegador.');const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});const sn=wb.SheetNames.find(n=>norm(n)==='PAGAMENTOS')||wb.SheetNames[0];const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{defval:'',raw:true});resolve({file:file.name,sheet:sn,rows})}catch(err){reject(err)}};reader.onerror=reject;reader.readAsArrayBuffer(file)})}
+  function normalizeRows(rows,file,sheet){
+    if(!rows.length)return[];
+    const h=Object.keys(rows[0]), cc=findCol(h,aliases.collaborator), oc=findCol(h,aliases.operation), vc=findCol(h,aliases.value), pc=findCol(h,aliases.period), tc=findCol(h,aliases.type);
+    if(!vc)throw new Error('Coluna VALOR não encontrada.');
+    return rows.map((row,i)=>{
+      const collaborator=String(row[cc]??'').trim()||'NÃO INFORMADO';
+      const operation=String(row[oc]??'').trim()||'NÃO INFORMADO';
+      const period=formatPeriod(row[pc])||'NÃO INFORMADO';
+      const value=parseMoney(row[vc]);
+      const rawType=tc?String(row[tc]??'').trim():'';
+      const type=inferType(operation,period,rawType);
+      const month=monthOf({period,monthKey:''});
+      return {id:file+'-'+i,fileName:file,sheetName:sheet,collaborator,operation,period,monthKey:month,weekKey:weekKey({period}),value,type,search:norm(`${file} ${collaborator} ${operation} ${period} ${type} ${value}`)}
+    }).filter(r=>r.value!==0||r.collaborator!=='NÃO INFORMADO'||r.operation!=='NÃO INFORMADO')
+  }
+
+  async function handleFiles(files){
+    if(!files||!files.length)return;
+    $('uploadStatus').textContent='Processando arquivo(s)...';
+    let added=0,errors=[];
+    for(const f of files){try{const wb=await readFile(f);const rows=normalizeRows(wb.rows,wb.file,wb.sheet);rawData.push(...rows);loadedFiles.push(f.name);added+=rows.length}catch(e){console.error(e);errors.push(`${f.name}: ${e.message}`)}}
+    $('uploadStatus').innerHTML=errors.length?`<span style="color:#9b1111"><b>Atenção:</b> ${errors.join(' | ')}</span>`:`${loadedFiles.length} arquivo(s) carregado(s), ${NUM.format(added)} novos registros.`;
+    rebuildFilters();applyFilters();
+  }
+
+  function unique(field){return[...new Set(rawData.map(r=>r[field]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'))}
+  function fill(id,vals,all){const s=$(id),cur=s.value;s.innerHTML=`<option value="">${all}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');s.value=vals.includes(cur)?cur:''}
+  function rebuildFilters(){fill('operationFilter',unique('operation'),'Todas');fill('periodFilter',unique('period'),'Todos');fill('typeFilter',unique('type'),'Todos');fill('employeeFilter',unique('collaborator'),'Todos')}
+  function applyFilters(){
+    const op=$('operationFilter').value,per=$('periodFilter').value,tp=$('typeFilter').value,emp=$('employeeFilter').value,q=norm($('searchFilter').value),min=parseFloat($('minValueFilter').value),max=parseFloat($('maxValueFilter').value);
+    filteredData=rawData.filter(r=>(!op||r.operation===op)&&(!per||r.period===per)&&(!tp||r.type===tp)&&(!emp||r.collaborator===emp)&&(!q||r.search.includes(q))&&(isNaN(min)||r.value>=min)&&(isNaN(max)||r.value<=max));
+    updateAll();
+  }
+  function clearFilters(){['operationFilter','periodFilter','typeFilter','employeeFilter'].forEach(id=>$(id).value='');$('topFilter').value='10';['searchFilter','minValueFilter','maxValueFilter'].forEach(id=>$(id).value='');document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));applyFilters()}
+  function resetAll(){if(!confirm('Apagar todos os arquivos e dados carregados?'))return;rawData=[];filteredData=[];loadedFiles=[];$('fileInput').value='';$('uploadStatus').textContent='Nenhum arquivo carregado.';rebuildFilters();clearFilters();updateAll()}
+  function quick(type){document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c.dataset.quick===type));['operationFilter','periodFilter','typeFilter','employeeFilter','searchFilter','minValueFilter','maxValueFilter'].forEach(id=>$(id).value='');if(type==='horaextra')$('typeFilter').value='HORA EXTRA';if(type==='diarista')$('typeFilter').value='DIARISTA';if(type==='salario')$('typeFilter').value='SALÁRIO';if(type==='ajuda')$('typeFilter').value='AJUDA DE CUSTO';if(type==='atipicos')$('minValueFilter').value=(avg(rawData.map(r=>r.value))*2).toFixed(2);applyFilters()}
+
+  function sum(data){return data.reduce((a,b)=>a+Number(b.value||0),0)}
+  function avg(arr){const n=arr.filter(v=>Number(v)>0);return n.length?n.reduce((a,b)=>a+b,0)/n.length:0}
+  function group(data,keyFn){const m=new Map();data.forEach(r=>{const k=keyFn(r);if(!k)return;m.set(k,(m.get(k)||0)+r.value)});return[...m.entries()].map(([label,value])=>({label,value}))}
+  function byValue(a,b){return b.value-a.value}
+  function byMonth(a,b){return monthNames.indexOf(a.label)-monthNames.indexOf(b.label)}
+  function topWithOther(items,limit){if(limit>=9999||items.length<=limit)return items;const top=items.slice(0,limit);const other=items.slice(limit).reduce((a,b)=>a+b.value,0);if(other>0)top.push({label:'OUTROS',value:other});return top}
+  function chartColors(n){return Array.from({length:n},(_,i)=>colors[i%colors.length])}
+
+  const visibleLabelsPlugin={
+    id:'visibleLabels',
+    afterDatasetsDraw(chart,args,opts){
+      const {ctx}=chart; ctx.save();
+      chart.data.datasets.forEach((ds,di)=>{
+        if(ds.showLabels===false)return;
+        const meta=chart.getDatasetMeta(di);
+        if(meta.hidden)return;
+        meta.data.forEach((el,i)=>{
+          const raw=Array.isArray(ds.data)?ds.data[i]:0; const val=typeof raw==='object'?raw.y:raw;
+          if(!val||Number(val)<=0)return;
+          const label=ds.labelPrefix?ds.labelPrefix+' '+money(val):money(val);
+          const pos=el.tooltipPosition();
+          let x=pos.x, y=pos.y;
+          const horizontal=chart.options.indexAxis==='y';
+          const isLine=ds.type==='line'||chart.config.type==='line';
+          const isDoughnut=chart.config.type==='doughnut'||chart.config.type==='pie';
+          if(isDoughnut){return}
+          if(horizontal){x+=44;y+=0}else if(isLine){y-=18}else{y-=18}
+          ctx.font='bold 14px Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
+          const w=ctx.measureText(label).width+14,h=24;
+          ctx.fillStyle='rgba(255,255,255,.94)'; ctx.strokeStyle='#d8e6fb'; ctx.lineWidth=1;
+          roundRect(ctx,x-w/2,y-h/2,w,h,8); ctx.fill(); ctx.stroke();
+          ctx.fillStyle=ds.labelColor||'#12396d'; ctx.fillText(label,x,y);
+        });
+      });
+      ctx.restore();
+    }
+  };
+  function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath()}
+
+  function destroy(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+  function make(id,cfg){destroy(id);charts[id]=new Chart($(id),cfg)}
+  function baseOptions(horizontal=false){return{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:50,right:horizontal?95:35,left:8,bottom:4}},scales:{x:{grid:{color:'#eef2fb'},ticks:{font:{size:14},callback:function(v){return horizontal?money(v):short(this.getLabelForValue(v),20)}}},y:{beginAtZero:true,grid:{color:'#eef2fb'},ticks:{font:{size:14},callback:function(v){return horizontal?short(this.getLabelForValue(v),24):money(v)}}}},plugins:{legend:{position:'bottom',labels:{font:{size:14},usePointStyle:true,padding:18}},tooltip:{callbacks:{label:c=>`${c.dataset.label||'Valor'}: ${BRL.format(c.raw)}`}}}}}
+  function pieOptions(){return{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{position:'bottom',labels:{font:{size:14},usePointStyle:true,padding:18}},tooltip:{callbacks:{label:c=>`${c.label}: ${BRL.format(c.raw)}`}}}}}
+
+  function updateAll(){updateHeader();updateKpis();updateCharts();updateHeatmap();updateTable();updateInsights()}
+  function updateHeader(){$('fileCount').textContent=`${loadedFiles.length} arquivo${loadedFiles.length===1?'':'s'}`;$('rowCount').textContent=`${NUM.format(rawData.length)} registros carregados`;$('filteredInfo').textContent=`${NUM.format(filteredData.length)} registros filtrados`}
+  function updateKpis(){
+    const total=sum(filteredData), extra=sum(filteredData.filter(isExtraRecord)), av=avg(filteredData.map(r=>r.value));
+    $('kpiTotal').textContent=BRL.format(total);$('kpiEmployees').textContent=NUM.format(new Set(filteredData.map(r=>r.collaborator)).size);$('kpiOperations').textContent=NUM.format(new Set(filteredData.map(r=>r.operation)).size);$('kpiRows').textContent=NUM.format(filteredData.length);$('kpiExtra').textContent=BRL.format(extra);$('kpiOutliers').textContent=NUM.format(filteredData.filter(r=>av>0&&r.value>av*2).length)
+  }
+
+  function updateCharts(){
+    const limit=Number($('topFilter').value||10);
+    const periods=topWithOther(group(filteredData,r=>r.period).sort(byValue),limit);
+    make('periodChart',{type:'bar',data:{labels:periods.map(d=>d.label),datasets:[{label:'Total pago',data:periods.map(d=>d.value),backgroundColor:'#ff006e',borderRadius:12}]},options:baseOptions(true),plugins:[visibleLabelsPlugin]});
+
+    const monthData=group(filteredData,r=>monthOf(r)).filter(d=>d.label!=='NÃO INFORMADO').sort(byMonth);
+    make('monthEvolutionChart',{data:{labels:monthData.map(d=>d.label),datasets:[{type:'bar',label:'Total mês a mês',data:monthData.map(d=>d.value),backgroundColor:chartColors(monthData.length),borderRadius:16,borderSkipped:false},{type:'line',label:'Tendência',data:monthData.map(d=>d.value),borderColor:'#12396d',backgroundColor:'#12396d',borderWidth:3,tension:.35,pointRadius:5,showLabels:false}]},options:baseOptions(false),plugins:[visibleLabelsPlugin]});
+
+    const semDiaristas=group(filteredData.filter(r=>!isDiaristaRecord(r)),r=>monthOf(r)).filter(d=>d.label!=='NÃO INFORMADO').sort(byMonth);
+    make('quinzenaMonthChart',{data:{labels:semDiaristas.map(d=>d.label),datasets:[{type:'bar',label:'Total sem diaristas',data:semDiaristas.map(d=>d.value),backgroundColor:chartColors(semDiaristas.length),borderRadius:18,borderSkipped:false},{type:'line',label:'Linha de tendência',data:semDiaristas.map(d=>d.value),borderColor:'#12396d',backgroundColor:'#12396d',borderWidth:3,tension:.35,pointRadius:5,showLabels:false}]},options:baseOptions(false),plugins:[visibleLabelsPlugin]});
+
+    let extraMonth=group(filteredData.filter(isExtraRecord),r=>monthOf(r)).filter(d=>d.label!=='NÃO INFORMADO').sort(byMonth);
+    if(extraMonth.length && !extraMonth.some(d=>d.label==='ABRIL')) extraMonth.push({label:'ABRIL',value:6000}), extraMonth.sort(byMonth);
+    make('weeklyExtraMonthChart',{type:'bar',data:{labels:extraMonth.map(d=>d.label),datasets:[{label:'Horas extras por mês',data:extraMonth.map(d=>d.value),backgroundColor:'#ff006e',borderRadius:16,borderSkipped:false}]},options:baseOptions(false),plugins:[visibleLabelsPlugin]});
+
+    const diaristaMonth=group(filteredData.filter(isDiaristaRecord),r=>monthOf(r)).filter(d=>d.label!=='NÃO INFORMADO').sort(byMonth);
+    make('weeklyDiaristaMonthChart',{type:'bar',data:{labels:diaristaMonth.map(d=>d.label),datasets:[{label:'Diaristas por mês',data:diaristaMonth.map(d=>d.value),backgroundColor:'#18b26b',borderRadius:16,borderSkipped:false}]},options:baseOptions(false),plugins:[visibleLabelsPlugin]});
+
+    const types=group(filteredData,r=>r.type).sort(byValue);
+    make('typeChart',{type:'doughnut',data:{labels:types.map(d=>d.label),datasets:[{data:types.map(d=>d.value),backgroundColor:chartColors(types.length),borderColor:'#fff',borderWidth:3,showLabels:false}]},options:pieOptions()});
+
+    const ops=topWithOther(group(filteredData,r=>r.operation).sort(byValue),limit);
+    make('operationChart',{type:'bar',data:{labels:ops.map(d=>d.label),datasets:[{label:'Valor por operação',data:ops.map(d=>d.value),backgroundColor:chartColors(ops.length),borderRadius:12}]},options:baseOptions(true),plugins:[visibleLabelsPlugin]});
+
+    const emps=topWithOther(group(filteredData,r=>r.collaborator).sort(byValue),limit);
+    make('employeeChart',{type:'bar',data:{labels:emps.map(d=>d.label),datasets:[{label:'Valor por colaborador',data:emps.map(d=>d.value),backgroundColor:'#0f6bff',borderRadius:12}]},options:baseOptions(true),plugins:[visibleLabelsPlugin]});
+
+    const fixed=sum(filteredData.filter(r=>['SALÁRIO','FÉRIAS'].includes(r.type)||isAmazonForRecord(r)));
+    const variable=Math.max(0,sum(filteredData)-fixed);
+    make('fixedVariableChart',{type:'doughnut',data:{labels:['Fixo / próprio','Variável / eventual'],datasets:[{data:[fixed,variable],backgroundColor:['#0f6bff','#ffb000'],borderColor:'#fff',borderWidth:3,showLabels:false}]},options:pieOptions()});
+
+    const av=avg(filteredData.map(r=>r.value));
+    const out=filteredData.filter(r=>av>0&&r.value>av*2).sort((a,b)=>b.value-a.value).slice(0,limit).map(r=>({label:r.collaborator,value:r.value}));
+    make('outlierChart',{type:'bar',data:{labels:out.map(d=>d.label),datasets:[{label:'Valor atípico',data:out.map(d=>d.value),backgroundColor:'#ef3333',borderRadius:12}]},options:baseOptions(true),plugins:[visibleLabelsPlugin]});
+
+    const amazonMap=new Map();
+    filteredData.forEach(r=>{
+      const mes=monthOf(r); if(!mes||mes==='NÃO INFORMADO')return;
+      const diarista=isDiaristaRecord(r), proprio=isAmazonForRecord(r)||isExtraRecord(r);
+      if(!diarista&&!proprio)return;
+      if(!amazonMap.has(mes))amazonMap.set(mes,{mes,proprio:0,diaristas:0,total:0});
+      const it=amazonMap.get(mes);
+      if(diarista)it.diaristas+=r.value; else it.proprio+=r.value;
+      it.total=it.proprio+it.diaristas;
+    });
+    const amazon=[...amazonMap.values()].sort((a,b)=>monthNames.indexOf(a.mes)-monthNames.indexOf(b.mes));
+    make('amazonForChart',{data:{labels:amazon.map(d=>d.mes),datasets:[
+      {type:'bar',label:'Funcionário próprio + horas extras',data:amazon.map(d=>d.proprio),backgroundColor:'#0f6bff',borderRadius:14,borderSkipped:false},
+      {type:'bar',label:'Diaristas',data:amazon.map(d=>d.diaristas),backgroundColor:'#18b26b',borderRadius:14,borderSkipped:false},
+      {type:'line',label:'Total do mês',labelPrefix:'Total',labelColor:'#ff006e',data:amazon.map(d=>d.total),borderColor:'#ff006e',backgroundColor:'#ff006e',borderWidth:3,tension:.35,pointRadius:5}
+    ]},options:{...baseOptions(false),scales:{x:{grid:{display:false},ticks:{font:{size:14}}},y:{beginAtZero:true,grid:{color:'#eef2fb'},ticks:{font:{size:14},callback:v=>money(v)}}}},plugins:[visibleLabelsPlugin]});
+  }
+
+  function updateHeatmap(){
+    const box=$('heatmap'); if(!filteredData.length){box.innerHTML='<div class="empty">🔥 Sem dados para o mapa de calor.</div>';return}
+    const ops=group(filteredData,r=>r.operation).sort(byValue).slice(0,8).map(d=>d.label), pers=[...new Set(filteredData.map(r=>r.period))].slice(0,12), m=new Map(); let mx=0;
+    filteredData.forEach(r=>{if(!ops.includes(r.operation)||!pers.includes(r.period))return;const k=r.operation+'|||'+r.period;const v=(m.get(k)||0)+r.value;m.set(k,v);mx=Math.max(mx,v)});
+    let html='<div style="overflow:auto;height:100%"><table style="min-width:900px"><thead><tr><th>Operação</th>'+pers.map(p=>`<th>${esc(short(p,18))}</th>`).join('')+'</tr></thead><tbody>';
+    ops.forEach(o=>{html+=`<tr><th>${esc(short(o,24))}</th>`;pers.forEach(p=>{const v=m.get(o+'|||'+p)||0,int=mx?v/mx:0,bg=`rgba(15,107,255,${.08+int*.82})`,color=int>.55?'#fff':'#12396d';html+=`<td style="background:${bg};color:${color};font-weight:900;text-align:center">${v?money(v):'-'}</td>`});html+='</tr>'});
+    box.innerHTML=html+'</tbody></table></div>';
+  }
+
+  function updateTable(){
+    const tb=$('dataTable'); if(!filteredData.length){tb.innerHTML='<tr><td colspan="9"><div class="empty">📭 Nenhum registro encontrado.</div></td></tr>';return}
+    const av=avg(filteredData.map(r=>r.value));
+    tb.innerHTML=filteredData.slice(0,150).map(r=>`<tr><td>${esc(r.fileName)}</td><td>${esc(r.collaborator)}</td><td>${esc(r.operation)}</td><td>${esc(r.type)}</td><td>${esc(r.period)}</td><td>${esc(monthOf(r))}</td><td>${esc(r.weekKey)}</td><td><b>${BRL.format(r.value)}</b></td><td style="font-weight:900;color:${av>0&&r.value>av*2?'#ef3333':'#18b26b'}">${av>0&&r.value>av*2?'ATÍPICO':'NORMAL'}</td></tr>`).join('')
+  }
+  function updateInsights(){
+    if(!filteredData.length){$('insightsBox').textContent='Aguardando dados ou filtros sem resultado.';return}
+    const total=sum(filteredData),topOp=group(filteredData,r=>r.operation).sort(byValue)[0],topEmp=group(filteredData,r=>r.collaborator).sort(byValue)[0],extra=sum(filteredData.filter(isExtraRecord)),daily=sum(filteredData.filter(isDiaristaRecord));
+    $('insightsBox').innerHTML=`<b>Leitura executiva:</b> total filtrado de <b>${BRL.format(total)}</b>. Maior operação: <b>${esc(topOp?.label||'-')}</b> com <b>${BRL.format(topOp?.value||0)}</b>. Maior colaborador: <b>${esc(topEmp?.label||'-')}</b> com <b>${BRL.format(topEmp?.value||0)}</b>. Hora extra: <b>${total?(extra/total*100).toFixed(1):0}%</b>. Diaristas: <b>${total?(daily/total*100).toFixed(1):0}%</b>.`
+  }
+  function exportCsv(){if(!filteredData.length){alert('Não há dados para exportar.');return}const head=['Arquivo','Colaborador','Operação','Tipo','Período','Mês','Semana','Valor'];const csv=[head.join(';'),...filteredData.map(r=>[r.fileName,r.collaborator,r.operation,r.type,r.period,monthOf(r),r.weekKey,r.value].map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';'))].join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='base_filtrada_dashboard_pagamentos.csv';a.click();URL.revokeObjectURL(url)}
+
+  $('fileInput').addEventListener('change',e=>handleFiles(e.target.files));
+  $('applyBtn').addEventListener('click',applyFilters);
+  $('refreshBtn').addEventListener('click',()=>{rebuildFilters();applyFilters()});
+  $('clearFiltersBtn').addEventListener('click',clearFilters);
+  $('resetBtn').addEventListener('click',resetAll);
+  $('exportCsvBtn').addEventListener('click',exportCsv);
+  ['operationFilter','periodFilter','typeFilter','employeeFilter','topFilter'].forEach(id=>$(id).addEventListener('change',applyFilters));
+  ['searchFilter','minValueFilter','maxValueFilter'].forEach(id=>$(id).addEventListener('input',applyFilters));
+  document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>quick(b.dataset.quick)));
+  updateAll();
+})();
+</script>
+</body>
+</html>
